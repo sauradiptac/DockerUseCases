@@ -3,6 +3,7 @@ services:
     2Web2Db2Networks_db1:
         container_name: 2Web2Db2Networks_db1
         image: mysql
+        # This port mapping is required if we want to allow access to the container from outside its docker network 2webwdb2networks_nw1 through the host machine.
         ports:
          - "3306:3306"
         networks:
@@ -20,12 +21,14 @@ services:
             MYSQL_DATABASE: demo_1
             MYSQL_USER: user1
             MYSQL_PASSWORD: password1
+        # Pass on all SQL scripts lying inside /DataAccess/init/db_1 folder to the entrypoint program of mysql image.
         volumes:
          - ./DataAccess/Data/init/db_1:/docker-entrypoint-initdb.d
 
     2Web2Db2Networks_db2:
         container_name: 2Web2Db2Networks_db2
         image: mysql
+        # This port mapping is required if we want to allow access to the container from outside its docker network 2webwdb2networks_nw2 through the host machine.
         ports:
          - "3307:3306"
         networks:
@@ -36,13 +39,18 @@ services:
             MYSQL_DATABASE: demo_2
             MYSQL_USER: user1
             MYSQL_PASSWORD: password1
+        # Pass on all SQL scripts lying inside /DataAccess/init/db_1 folder to the entrypoint program of mysql image.        
         volumes:
          - ./DataAccess/Data/init/db_2:/docker-entrypoint-initdb.d
 
     frontend_1:
         container_name: frontend_1
         build:
+            # Context is set to the current folder.
+            # All paths for this stage will be relative to the context.
+            # So navaigate to the folder where the docker-compose.yaml file is present.
             context: .
+            # The docker compose will search for a file named Dockerfile in the folder named TwoWebTwoDbTwoNetworks inside the current folder which is also set as the context above.
             dockerfile: TwoWebTwoDbTwoNetworks/Dockerfile
 
         depends_on:
@@ -53,27 +61,40 @@ services:
         networks:
          - 2webwdb2networks_nw1
         restart: always
+        # DBHOST entry should be the name of the MySql container that contains the intended db instance for this frontend.
+        # DBHOST entry should match the Server name in the connection string used in the Program.cs in C# code.
+        # DBPORT entry should be 3306 as it is the default mentioned for the MySQL image.
         environment:
          - DBHOST=2Web2Db2Networks_db1
          - DBPORT=3306
+         # ASPNETCORE_ENVIRONMENT=<Environment Name> can be used to apply environment specific configs if required.
+         # - ASPNETCORE_ENVIRONMENT=Development
     
     frontend_2:
         container_name: frontend_2
         build:
+            # The docker compose will search for a file named Dockerfile in the folder named TwoWebTwoDbTwoNetworks inside the current folder which is also set as the context above.
             context: .
+            # The docker compose will search for a file named Dockerfile in the folder named TwoWebTwoDbTwoNetworks_Web_2 inside the current folder which is also set as the context above.
             dockerfile: TwoWebTwoDbTwoNetworks_Web_2/Dockerfile
 
         depends_on:
          - 2Web2Db2Networks_db2
+        # Localhost port 6000 is forbidden for many browsers. So avoid using it for port mapping.
         ports:
          - "8080:80"
          - "8081:443"
         networks:
          - 2webwdb2networks_nw2
         restart: always
+        # DBHOST entry should be the name of the MySql container that contains the intended db instance for this frontend.
+        # DBHOST entry should match the Server name in the connection string used in the Program.cs in C# code.
+        # DBPORT entry should be 3306 as it is the default mentioned for the MySQL image.
         environment:
          - DBHOST=2Web2Db2Networks_db2
          - DBPORT=3306
+         # ASPNETCORE_ENVIRONMENT=<Environment Name> can be used to apply environment specific configs if required.
+         # - ASPNETCORE_ENVIRONMENT=Development
 networks:
     2webwdb2networks_nw1:
         driver: bridge    
