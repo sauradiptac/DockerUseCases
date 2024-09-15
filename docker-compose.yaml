@@ -1,0 +1,82 @@
+name: 2Web2Db2Networks
+services:
+    2Web2Db2Networks_db1:
+        container_name: 2Web2Db2Networks_db1
+        image: mysql
+        ports:
+         - "3306:3306"
+        networks:
+         - 2webwdb2networks_nw1
+        restart: always
+        environment:
+            # MYSQL_ROOT_PASSWORD sets the password for root user.
+            # Ideally, sensitive information should not be present in files stored in repo.
+            # But, here the MySQL will run in a container of a standalone host.
+            # Host details are not available here. So, there is no security risk.
+            # MYSQL_DATABASE creates the database if not created.
+            # MYSQL_DATABASE can be omitted and databse creation command can be added in the init scripts.
+            # Alternate user can be created as below using MYSQL_USER and MYSQL_PASSWORD
+            MYSQL_ROOT_PASSWORD: P@ssw0rd
+            MYSQL_DATABASE: demo_1
+            MYSQL_USER: user1
+            MYSQL_PASSWORD: password1
+        volumes:
+         - ./DataAccess/Data/init/db_1:/docker-entrypoint-initdb.d
+
+    2Web2Db2Networks_db2:
+        container_name: 2Web2Db2Networks_db2
+        image: mysql
+        ports:
+         - "3307:3306"
+        networks:
+         - 2webwdb2networks_nw2
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: P@ssw0rd
+            MYSQL_DATABASE: demo_2
+            MYSQL_USER: user1
+            MYSQL_PASSWORD: password1
+        volumes:
+         - ./DataAccess/Data/init/db_2:/docker-entrypoint-initdb.d
+
+    frontend_1:
+        container_name: frontend_1
+        build:
+            context: .
+            dockerfile: TwoWebTwoDbTwoNetworks/Dockerfile
+
+        depends_on:
+         - 2Web2Db2Networks_db1
+        ports:
+         - "5000:80"
+         - "5001:443"
+        networks:
+         - 2webwdb2networks_nw1
+        restart: always
+        environment:
+         - DBHOST=2Web2Db2Networks_db1
+         - DBPORT=3306
+    
+    frontend_2:
+        container_name: frontend_2
+        build:
+            context: .
+            dockerfile: TwoWebTwoDbTwoNetworks_Web_2/Dockerfile
+
+        depends_on:
+         - 2Web2Db2Networks_db2
+        ports:
+         - "8080:80"
+         - "8081:443"
+        networks:
+         - 2webwdb2networks_nw2
+        restart: always
+        environment:
+         - DBHOST=2Web2Db2Networks_db2
+         - DBPORT=3306
+networks:
+    2webwdb2networks_nw1:
+        driver: bridge    
+    2webwdb2networks_nw2:
+        driver: bridge 
+       
